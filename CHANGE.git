@@ -1,0 +1,7 @@
+#push.yml
+git clone https://github.com/server-mm/server-mm.github.io
+cd server-mm.github.io
+echo "<h1>Hello GitHub Pages!</h1>" > index.html
+git add .
+git commit -m "Add index.html"
+git push origin main
