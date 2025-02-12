@@ -1,6 +1,6 @@
 #push.yml
-git clone https://github.com/server-mm/server-mm.github.io
-cd server-mm.github.io
+git clone https://github.com/server-mm404/server-mm404.brm
+cd server-mm404.brm
 echo "<h1>Hello GitHub Pages!</h1>" > index.html
 git add .
 git commit -m "Add index.html"
