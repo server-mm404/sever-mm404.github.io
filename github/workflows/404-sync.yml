@@ -1,0 +1,68 @@
+name: Auto Sync MM404 Server
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  schedule:
+    - cron: '0 * * * *'  # Every hour
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Main Repository
+        uses: actions/checkout@v3
+
+      - name: Checkout Server Repository
+        uses: actions/checkout@v3
+        with:
+          repository: username/server-mm404.com
+          path: server-mm404
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+
+      - name: Sync Files
+        run: |
+          rsync -av --exclude '.git/' server-mm404/ ./
+          echo "✅ Files synced!"
+
+      - name: Check for Errors (Lint & Syntax)
+        run: |
+          if find . -name "*.js" | xargs eslint --fix; then
+            echo "✅ JavaScript files are clean!"
+          else
+            echo "⚠️ Fixing JS errors..."
+            find . -name "*.js" | xargs eslint --fix
+          fi
+          
+          if find . -name "*.py" | xargs pylint --errors-only; then
+            echo "✅ Python files are clean!"
+          else
+            echo "⚠️ Fixing Python errors..."
+            find . -name "*.py" | xargs autopep8 --in-place --aggressive --aggressive
+          fi
+
+      - name: Commit & Push Changes
+        run: |
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          git add .
+          git commit -m "Auto Sync & Fix"
+          git push || echo "No changes to commit."
+
+      - name: Deploy to Server (SSH)
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          echo "$SSH_PRIVATE_KEY" > private_key && chmod 600 private_key
+          ssh -o StrictHostKeyChecking=no -i private_key user@server-ip << 'EOF'
+            cd /var/www/server-mm404.com
+            git pull origin main
+            pm2 restart all || systemctl restart apache2
+            echo "🚀 Server updated & restarted!"
+          EOF
